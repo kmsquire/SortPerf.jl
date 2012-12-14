@@ -185,14 +185,11 @@ function sort_plots(df, cols)
             curves = Any[]
             for (i, sort_fn_df) in enumerate(groupby(test_type_df, "sort_fn"))
                 sort_fn = sort_fn_df[1, "sort_fn"]
-                if sort_fn == "#<function>" || sort_fn == "sortperm"
-                    continue
-                end
                 c = colors[i]
                 s = linestyles[i]
                 pts = Points(sort_fn_df["log_size"], sort_fn_df[col], "color", c, "symboltype", "circle")
                 cv = Curve(sort_fn_df["log_size"], sort_fn_df[col], "color", c, "linestyle", s)
-                setattr(cv, "label", sort_fn)
+                setattr(cv, "label", replace(sort_fn, "_", "\\_"))
                 push(curves, cv)
                 add(plt, pts)
                 add(plt, cv)
@@ -214,7 +211,7 @@ function std_sort_tests(save_plots::Bool, pdffile)
     if save_plots
         plots = sort_plots(sort_times_median, ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
                                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
-        file(plots, plotfile)
+        file(plots, pdffile)
     end
     sort_times_median
 end
@@ -234,7 +231,7 @@ function perm_sort_tests(save_plots::Bool, pdffile)
     if save_plots
         plots = sort_plots(sort_times_median, ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
                                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
-        file(plots, plotfile)
+        file(plots, pdffile)
     end
     sort_times_median
 end
