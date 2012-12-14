@@ -1,4 +1,4 @@
-SortPerf: Module to test the performance of sorting algorithms
+SortPerf.jl: Module to test the performance of sorting algorithms
 --------------------------------------------------------------
 
 The purpose of this module is to test the performance of the
