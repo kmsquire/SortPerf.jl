@@ -5,7 +5,7 @@
 
 module SortPerf
 
-export sortperf, run_sort_tests, sort_plots, std_sort_tests, perm_sort_tests
+export sortperf, sortperf_df, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests
 
 import Base.Sort: InsertionSort, QuickSort, MergeSort, TimSort, Algorithm, Ordering
 
