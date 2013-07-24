@@ -7,161 +7,28 @@ module SortPerf
 
 export sortperf, run_sort_tests, sort_plots, std_sort_tests, perm_sort_tests
 
-import Base.Sort: InsertionSort, QuickSort, MergeSort, TimSort, Algorithm
+import Base.Sort: InsertionSort, QuickSort, MergeSort, TimSort, Algorithm, Ordering
 
 using DataFrames
 using Winston
 
-#require("Winston/src/Plot")
-#using Plot
+# rand functions for testing
+randstr(n::Int) = [randstring() for i = 1:n]
+randint(n::Int) = rand(1:n,n)
 
-randstr_fn(str_len::Int) = n -> [randstring(str_len) for i = 1:n]
-randint_fn(m::Int) = n -> rand(1:m,n)
+randfns = (Type=>Function)[Int => randint, 
+                           String => randstr, 
+                           Float32 => x->float32(rand(x)), 
+                           Float64 => rand]
 
+std_types = [Int, Float64, String]
 sort_algs = [InsertionSort, QuickSort, MergeSort, TimSort]
-Reverse = Base.Sort.ReverseOrdering(Sort.Forward)
 
-function sortperf(alg::Algorithm, data, qsort_med_killer::Bool=true)
-    
-    srand(1)
-    times = Dict{String, Float64}()
-    n = length(data)
+# DataFrame labels
+labels = ["test_type", "sort_alg", "log_size", "size", "*sort", 
+          "\\sort", "/sort", "3sort", "+sort", "~sort", "=sort", "!sort"]
 
-    ## Random
-    gc()
-    times["*sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## Reverse sorted
-    reverse!(data)
-    @assert issorted(data, Reverse)
-    gc()
-    times["\\sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## Sorted
-    gc()
-    times["/sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## Sorted with 3 exchanges
-    for i = 1:3
-        n1 = rand(1:n)
-        n2 = rand(1:n)
-        data[n1], data[n2] = data[n2], data[n1]
-    end
-    gc()
-    times["3sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## Sorted with 10 unsorted values at end
-    for i = 1:10
-        val = splice!(data, i:i)
-        append!(data, val)
-    end
-    gc()
-    times["+sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## Random data with 4 unique values
-    idxs = Int[]
-    for i = 1:4
-        idx = rand(1:n)
-        while contains(idxs, idx)
-            idx = rand(1:n)
-        end
-        push!(idxs, i)
-    end
-    vals = data[idxs]
-    data4 = vals[rand(1:4, n)]
-    gc()
-    times["~sort"] = @elapsed sort!(data4, alg=alg)
-    @assert issorted(data)
-
-    ## All values equal
-    data1 = data[fill(rand(1:n), n)]
-    gc()
-    times["=sort"] = @elapsed sort!(data, alg=alg)
-    @assert issorted(data)
-
-    ## quicksort median killer: first half descending, second half ascending
-    if qsort_med_killer && (alg!=QuickSort || n <= 2^18)
-        last = (length(data)>>1)<<1 # make sure data length is even
-        qdata = vcat(data[last:-2:2], data[1:2:last])
-        gc()
-        times["!sort"] = @elapsed sort!(qdata, alg=alg)
-        @assert issorted(data)
-    end
-
-    times
-end
-
-sortperf(alg::Algorithm, n::Int) = sortperf(alg, n, true, rand)
-sortperf(alg::Algorithm, n::Int, randfn::Function) = sortperf(alg, n, true, randfn)
-sortperf(alg::Algorithm, n::Int, qsort_med_killer::Bool) = sortperf(alg, n, qsort_med_killer, rand)
-
-sortperf(alg::Algorithm, n::Int, qsort_med_killer::Bool, randfn::Function) =
-    sortperf(alg, randfn(n), qsort_med_killer)
-
-
-# Run sort tests on a set of sort functions
-function run_sort_tests(log2range::Ranges, replicates::Int, sorts::Vector, qsort_med_killer::Bool)
-    
-    times = Dict[]
-    for (tt_name, test_type) in Any[(string(Int), randint_fn(10)), 
-                                    (string(Float64), rand), 
-                                    ("String[10]", randstr_fn(10))]
-        println("Testing $tt_name...")
-        for logsize in log2range
-            println("  $logsize")
-            size = 2^logsize
-            for s in sorts
-                if size > 2^18 && s == QuickSort && beginswith(tt_name, "String")
-                    println("Skipping $(s)")
-                    continue
-                end
-                println("    $s")
-                print("      ")
-
-                if (s == InsertionSort && logsize >= 14)
-                    println("Skipped")
-                    continue
-                end
-
-                # replicate
-                for i = 1:replicates
-                    print(i, " ")
-                    rec = {"test_type"=>tt_name, "sort_alg"=>string(s)[1:end-5], "log_size"=>logsize, "size"=>size}
-                    merge!(rec, sortperf(s, size, qsort_med_killer, test_type))
-                    push!(times, rec)
-                end
-                println()
-            end
-        end
-    end
-
-    times
-
-    labels = ["test_type", "sort_alg", "log_size", "size", "*sort", 
-              "\\sort", "/sort", "3sort", "+sort", "~sort", "=sort"]
-
-    if qsort_med_killer
-        push!(labels, "!sort")
-    end
-
-    df = DataFrame(times, labels)
-
-end
-
-run_sort_tests() = run_sort_tests(15)
-run_sort_tests(log2val::Int, args...) = run_sort_tests(log2val:log2val, args...)
-run_sort_tests(log2range::Ranges) = run_sort_tests(log2range, 1, sort_algs)
-run_sort_tests(log2range::Ranges, replicates::Int) = run_sort_tests(log2range, replicates, sort_algs)
-run_sort_tests(log2range::Ranges, replicates::Int, sort_func::Function, args...) = 
-    run_sort_tests(log2range, replicates, [sort_func], args...)
-run_sort_tests(log2range::Ranges, replicates::Int, sorts::Vector) = run_sort_tests(log2range, replicates, sorts, false)
-
-
+# Corresponding descriptions
 sort_descr = [ '*' => "random", 
                '\\' => "reversed",
                '/' => "sorted",
@@ -171,8 +38,161 @@ sort_descr = [ '*' => "random",
                '=' => "all equal",
                '!' => "qsort median killer"]
 
+
+# Test algorithm performance on a data vector
+function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward; replicates=3, skip_median_killer=false)
+    srand(1)
+    times = Dict[]   # Array of Dicts!
+    n = length(origdata)
+    logn = log2(length(origdata))
+
+    rec = {"test_type" => string(eltype(origdata)), 
+           "sort_alg" => string(alg)[1:end-5], 
+           "log_size" => isinteger(logn) ? int(logn) : logn, 
+           "size" => length(origdata)}
+
+    for rep = 1:replicates
+        print(rep, " ")
+        reptimes = Dict{String, Float64}()
+
+        ## Random
+        data = copy(origdata)
+        gc()
+        if !issorted(data, order)
+            reptimes["*sort"] = @elapsed sort!(data, alg, order)
+            @assert issorted(data, order)
+        end
+
+        ## Sorted
+        gc()
+        reptimes["/sort"] = @elapsed sort!(data, alg, order)
+        @assert issorted(data, order)
+
+        ## Reverse sorted
+        reverse!(data)
+        @assert issorted(data, Sort.ReverseOrdering(order))
+        gc()
+        reptimes["\\sort"] = @elapsed sort!(data, alg, order)
+        @assert issorted(data, order)
+
+        ## Sorted with 3 exchanges
+        for i = 1:3
+            n1 = rand(1:n)
+            n2 = rand(1:n)
+            data[n1], data[n2] = data[n2], data[n1]
+        end
+        gc()
+        reptimes["3sort"] = @elapsed sort!(data, alg, order)
+        @assert issorted(data, order)
+
+        ## Sorted with 10 unsorted values at end
+        if length(data) >= 20
+            for i = 1:10
+                val = splice!(data, i:i)
+                append!(data, val)
+            end
+            gc()
+            reptimes["+sort"] = @elapsed sort!(data, alg, order)
+            @assert issorted(data, order)
+        end
+
+        ## Random data with 4 unique values
+        idxs = Int[]
+        for i = 1:4
+            idx = rand(1:n)
+            while contains(idxs, idx)
+                idx = rand(1:n)
+            end
+            push!(idxs, idx)
+        end
+        vals = data[idxs]
+        data4 = vals[rand(1:4, n)]
+        gc()
+        reptimes["~sort"] = @elapsed sort!(data4, alg, order)
+        @assert issorted(data, order)
+
+        ## All values equal
+        data1 = data[fill(rand(1:n), n)]
+        gc()
+        reptimes["=sort"] = @elapsed sort!(data1, alg, order)
+        @assert issorted(data1, order)
+
+        ## quicksort median killer: first half descending, second half ascending
+        if skip_median_killer || alg==QuickSort && !(eltype(data) <: Integer) && length(data) >= 2^18
+            print("(median killer skipped) ")
+        else
+            last = (length(data)>>1)<<1 # make sure data length is even
+            qdata = vcat(data[last:-2:2], data[1:2:last])
+            gc()
+            reptimes["!sort"] = @elapsed sort!(qdata, alg, order)
+            @assert issorted(qdata, order)
+        end
+
+        push!(times, merge(rec, reptimes))
+    end
+    println()
+
+    times
+end
+
+# run sortperf over a range of data lengths
+function sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Ordering=Sort.Forward; named...)
+    lg2range = filter(x -> 2^x <= length(data), [log2range])
+    times = Dict[]
+    for logsize in lg2range
+        println("  $logsize")
+        size = 2^logsize
+        if (alg == InsertionSort && logsize >= 14)
+            println("Skipped")
+            continue
+        end
+
+        append!(times, sortperf(alg, data[1:size], order; named...))
+    end
+
+    times
+end
+
+# Generate a random array and run sortperf
+function sortperf(alg::Algorithm, T::Type, size::Int, args...; named...)
+    println("Testing $T...")
+    sortperf(alg, randfns[T](size), args...; named...)
+end
+
+# Generate a random array and run sortperf over different ranges of that array
+function sortperf(alg::Algorithm, T::Type, log2range::Ranges, args...; named...)
+    println("Testing $T...")
+    sortperf(alg, randfns[T](2^last(log2range)), log2range, args...; named...)
+end
+
+# Run sortperf for a number of types
+function sortperf(alg::Algorithm, types::Vector{DataType}, args...; named...)
+    times = Dict[]
+    for T in types
+        append!(times, sortperf(alg, T, args...; named...))
+    end
+    times
+end
+
+# Run sortperf on a number of algorithms
+function sortperf(algs::Vector{Algorithm}, args...; named...)
+    times = Dict[]
+    for alg in algs
+        println("\n$alg\n")
+        append!(times, sortperf(alg, args...; named...))
+    end
+    times
+end
+
+# Returns a DataFrame version of sortperf output
+sortperf_df(args...; named...) = DataFrame(sortperf(args...; named...), labels)
+
+# Get median sort timings
+sort_median(df::DataFrame) = groupby(df, ["log_size", "size", "sort_alg", "test_type"]) |> :median
+
 # Create sort plots
-function sort_plots(df, cols)
+function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
+                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
     plots = PlotContainer[]
     colors = repmat(["black", "blue", "green", "red", "cyan", "magenta"], 3, 1)
     linestyles = repmat(["solid", "dotted", "dotdashed"]', 6, 1)[:]
@@ -195,7 +215,7 @@ function sort_plots(df, cols)
 
             curves = Any[]
             for (i, sort_alg_df_all) in enumerate(groupby(test_type_df, "sort_alg"))
-                sort_alg_df = sort_alg_df_all[complete_cases(sort_alg_df_all),:]
+                sort_alg_df = sort_alg_df_all[complete_cases(sort_alg_df_all[:,[col]]),:]
                 sort_alg = sort_alg_df[1, "sort_alg"]
                 c = colors[i]
                 s = linestyles[i]
@@ -215,17 +235,33 @@ function sort_plots(df, cols)
     plots
 end
 
-# Test standard sort functions
-function std_sort_tests(save_plots::Bool=false, pdffile="sortperf.pdf")
-    sort_times = run_sort_tests(6:2:20, 3, sort_algs, true)
-    sort_times_median = groupby(sort_times, ["log_size", "size", "sort_alg", "test_type"]) |> :median
+# Save plots
+save_sort_plots(plots, pdffile="sortperf.pdf") = file(plots, pdffile)
+save_sort_plots(df::DataFrame, pdffile="sortperf.pdf") = 
+    save_sort_plots(sort_plots(sort_median(df), ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
+                                                 "+sort_median", "~sort_median", "=sort_median", "!sort_median"]),
+                               pdffile)
 
-    if save_plots
-        plots = sort_plots(sort_times_median, ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
-                                               "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
-        file(plots, pdffile)
+function view_sort_plots(plots)
+    for p in plots
+        Winston.display(p)
     end
-    sort_times_median
+end
+
+# Test standard sort functions
+function std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
+                        lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Sort.Forward, 
+                        save::Bool=false, prefix="sortperf")
+    sort_times = sortperf_df(sort_algs, std_types, range, Sort.ord(lt,by,rev,order); replicates=replicates)
+
+    if save
+        pdffile = prefix*".pdf"
+        tsvfile = prefix*".tsv"
+        save_sort_plots(sort_times, pdffile)
+        writetable(tsvfile, sort_times)
+    end
+
+    sort_times
 end
 
 end # module SortPerf
