@@ -39,25 +39,68 @@ The tests were inspired by similar tests used by sortperf in Python.  See http:/
 
 
 Suggestions based on basic tests
+--------------------------------
 
-Here is a table and some notes on the Julia implementations of the various algorithms.  The table indicates the recommended sort algorithm for the given
-type of data.  Note that structured data may behave differently, so if sorting time is important to your application, you should test the different
-algorithms on your own data.  This package facilitates that.
+Here is a table and some notes on the Julia implementations of the
+various algorithms.  The table indicates the recommended sort
+algorithm for the given type of data.  *Random* means that the data is
+permuted randomly.  *Structured* here means that the data may contain
+partially sorted runs (such as when appending random data to an
+already sorted array).  *Few unique* indicates that the data only
+contains a few unique values.
 
-|		|Small (<2^12)|       |Large (> 2^12)|          |        |
-|---------------|-------------|-------|--------------|----------|--------|
-|**Strings**	|Any	      |Stable |Any	     |Stable	|In-place|
-|- Random	|M	      |M      |M	     |M		|Q	 |
-|- Structured	|M	      |M      |T	     |T		|Q	 |
-|- Few Unique	|Q	      |M      |Q	     |M		|Q	 |
-|		|	      |	      |	             | 		|	 |
-|**Float64**	|	      |	      |	             |		|	 |
-|- Random	|Q	      |M      |R	     |R		|Q	 |
-|- Structured	|M	      |M      |T	     |T		|Q	 |
-|- Few Unique	|Q	      |M      |Q	     |R		|Q	 |
-|		|	      |	      |	             |		|	 |
-|**Int64**	|	      |       |	             |		|	 |
-|- Random	|Q	      |M      |R	     |R		|Q	 |
-|- Structured	|Q	      |M      |uT	     |R/T	|Q	 |
-|- Few Unique	|Q	      |M      |R	     |R		|Q	 |
+|               |Any <2^12|Stable <2^12|Any >2^12|Stable >2^12|In-place >2^12|
+|---------------|:-------:|:----------:|:-------:|:----------:|:------------:|
+|**Strings**    |         |            |         |            |              |
+|- Random       |M        |M           |M        |M           |Q             |
+|- Structured   |M        |M           |T        |T           |Q             |
+|- Few Unique   |Q        |M           |Q        |M           |Q             |
+|               |         |            |         |            |              |
+|**Float64**    |         |            |         |            |              |
+|- Random       |Q        |M           |R        |R           |Q             |
+|- Structured   |M        |M           |T        |T           |Q             |
+|- Few Unique   |Q        |M           |Q        |R           |Q             |
+|               |         |            |         |            |              |
+|**Int64**      |         |            |         |            |              |
+|- Random       |Q        |M           |R        |R           |Q             |
+|- Structured   |Q        |M           |uT       |R/T         |Q             |
+|- Few Unique   |Q        |M           |R        |R           |Q             |
+
+Key:
+
+|Symbol|Algorithm      |
+|------|---------------|
+|H     |HeapSort       |
+|I     |InsertionSort  |
+|M     |MergeSort      |
+|Q     |QuickSort      |
+|T     |TimSort        |
+|uT    |TimSortUnstable|
+|R     |RadixSort      |
+
+
+Current Recommendations
+-----------------------
+
+* Except for pathological cases, small arrays are sorted best with
+  QuickSort (unstable) or MergeSort (stable)
+
+* When sorting large arrays with sections of already-sorted data, use
+  TimSort.  The only structured case it does not handle well is
+  reverse-sorted data with large numbers of repeat elements.  An
+  unstable version of TimSort (to be contributed to Julia soon) will
+  handle this case
+
+* For numerical data (Ints or Floats) without structure, RadixSort is
+  the best choice, except for 1) 128-bit values, or 2) 64-bit integers
+  which span the full range of values.
+
+* When memory is tight, QuickSort is the best in-place algorithm.  If
+  there is concern about pathological cases, use HeapSort.  All
+  stable algorithms use additional memory, but TimSort is (probably)
+  the most frugal.
+
+* **Composite types may behave differently.**  If sorting is
+  important to your application, you should test the different
+  algorithms on your own data.  This package facilitates that.
 
