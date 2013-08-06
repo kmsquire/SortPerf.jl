@@ -36,3 +36,28 @@ The actual tests run include sorting arrays with the following characteristics:
 * quicksort median killer: first half descending, second half ascending
 
 The tests were inspired by similar tests used by sortperf in Python.  See http://svn.python.org/projects/python/trunk/Objects/listsort.txt for more details.
+
+
+Suggestions based on basic tests
+
+Here is a table and some notes on the Julia implementations of the various algorithms.  The table indicates the recommended sort algorithm for the given
+type of data.  Note that structured data may behave differently, so if sorting time is important to your application, you should test the different
+algorithms on your own data.  This package facilitates that.
+
+|		|Small (<2^12)|       |Large (> 2^12)|          |        |
+|---------------|-------------|-------|--------------|----------|--------|
+|**Strings**	|Any	      |Stable |Any	     |Stable	|In-place|
+|- Random	|M	      |M      |M	     |M		|Q	 |
+|- Structured	|M	      |M      |T	     |T		|Q	 |
+|- Few Unique	|Q	      |M      |Q	     |M		|Q	 |
+|		|	      |	      |	             | 		|	 |
+|**Float64**	|	      |	      |	             |		|	 |
+|- Random	|Q	      |M      |R	     |R		|Q	 |
+|- Structured	|M	      |M      |T	     |T		|Q	 |
+|- Few Unique	|Q	      |M      |Q	     |R		|Q	 |
+|		|	      |	      |	             |		|	 |
+|**Int64**	|	      |       |	             |		|	 |
+|- Random	|Q	      |M      |R	     |R		|Q	 |
+|- Structured	|Q	      |M      |uT	     |R/T	|Q	 |
+|- Few Unique	|Q	      |M      |R	     |R		|Q	 |
+

@@ -7,22 +7,28 @@ module SortPerf
 
 export sortperf, sortperf_df, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median
 
-import Base.Sort: InsertionSort, QuickSort, MergeSort, TimSort, Algorithm, Ordering
+import Base.Sort.Algorithm, Base.Order.Ordering
 
 using DataFrames
 using Winston
+using Color
 
 # rand functions for testing
 randstr(n::Int) = [randstring() for i = 1:n]
 randint(n::Int) = rand(1:n,n)
 
 randfns = (Type=>Function)[Int => randint, 
-                           String => randstr, 
+                           Int32 => x->int32(randint(x)),
+                           Int64 => x->int64(randint(x)), 
                            Float32 => x->float32(rand(x)), 
-                           Float64 => rand]
+                           Float64 => rand, 
+                           String => randstr]
 
 std_types = [Int, Float64, String]
-sort_algs = [InsertionSort, QuickSort, MergeSort, TimSort]
+sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort, TimSortUnstable]
+dc = distinguishable_colors(12)
+colors = Dict([string(alg)[1:end-5] for alg in sort_algs], Uint32[convert(RGB24, r) for r in dc])
+colors["HeapSort"] = convert(RGB24, dc[8])
 
 # DataFrame labels
 labels = ["test_type", "sort_alg", "log_size", "size", "*sort", 
@@ -51,8 +57,17 @@ function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward
            "log_size" => isinteger(logn) ? int(logn) : logn, 
            "size" => length(origdata)}
 
+    if alg==RadixSort && !isbits(origdata[1])
+        println("Skipping RadixSort for non bitstype $(eltype(origdata))")
+        reptimes = Dict{String, Float64}()
+        for label in labels[5:end]
+            reptimes[label] = 0.0
+        end
+        return times
+    end
+
     for rep = 1:replicates
-        print(rep, " ")
+        print(" $rep")
         reptimes = Dict{String, Float64}()
 
         ## Random
@@ -194,7 +209,7 @@ sort_median(df::DataFrame) = groupby(df, ["log_size", "size", "sort_alg", "test_
 function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
                                 "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
     plots = PlotContainer[]
-    colors = repmat(["black", "blue", "green", "red", "cyan", "magenta"], 3, 1)
+    #colors = repmat(["black", "blue", "green", "red", "cyan", "magenta"], 3, 1)
     linestyles = repmat(["solid", "dotted", "dotdashed"]', 6, 1)[:]
     for test_type_df in groupby(df, "test_type")
         test = test_type_df[1, "test_type"]
@@ -217,14 +232,16 @@ function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median",
             for (i, sort_alg_df_all) in enumerate(groupby(test_type_df, "sort_alg"))
                 sort_alg_df = sort_alg_df_all[complete_cases(sort_alg_df_all[:,[col]]),:]
                 sort_alg = sort_alg_df[1, "sort_alg"]
-                c = colors[i]
+                c = colors[sort_alg]
                 s = linestyles[i]
                 pts = Points(sort_alg_df["log_size"], sort_alg_df[col], "color", c, "symboltype", "circle")
                 cv = Curve(sort_alg_df["log_size"], sort_alg_df[col], "color", c, "linestyle", s)
                 setattr(cv, "label", replace(sort_alg, "_", "\\_"))
                 push!(curves, cv)
                 add(plt, pts)
-                add(plt, cv)
+                if length(sort_alg_df["log_size"]) > 1
+                    add(plt, cv)
+                end
             end
             add(plt, Legend(.1, .9, curves))
 
@@ -252,7 +269,7 @@ end
 function std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
                         lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Sort.Forward, 
                         save::Bool=false, prefix="sortperf")
-    sort_times = sortperf_df(sort_algs, std_types, range, Sort.ord(lt,by,rev,order); replicates=replicates)
+    sort_times = sortperf_df(sort_algs, types, range, Sort.ord(lt,by,rev,order); replicates=replicates)
 
     if save
         pdffile = prefix*".pdf"
