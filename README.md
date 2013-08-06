@@ -43,8 +43,8 @@ Suggestions based on basic tests
 
 Here is a table and some notes on the Julia implementations of the
 various algorithms.  The table indicates the recommended sort
-algorithm for the given size (`small < ~10,000 items < large`)
-and type (`String`, `FloatingPoint`, or `Integer`) of data.
+algorithm for the given size (`small < ~2^12 (=8,192) items < large`)
+and type (string, floating point, or integer) of data.
 
 - *Random* means that the data is permuted randomly.
 - *Structured* here means that the data contains partially sorted runs
@@ -53,22 +53,22 @@ and type (`String`, `FloatingPoint`, or `Integer`) of data.
 values.
 
 
-|               |Any (small)|Stable (small)|Any (large)|Stable (large)|In-place (large)|
-|---------------|:---------:|:------------:|:---------:|:------------:|:--------------:|
-|**Strings**    |           |              |           |              |                |
-|- Random       |M          |M             |M          |M             |Q               |
-|- Structured   |M          |M             |T          |T             |Q               |
-|- Few Unique   |Q          |M             |Q          |M             |Q               |
-|               |           |              |           |              |                |
-|**Float64**    |           |              |           |              |                |
-|- Random       |Q          |M             |R          |R             |Q               |
-|- Structured   |M          |M             |T          |T             |Q               |
-|- Few Unique   |Q          |M             |Q          |R             |Q               |
-|               |           |              |           |              |                |
-|**Int64**      |           |              |           |              |                |
-|- Random       |Q          |M             |R          |R             |Q               |
-|- Structured   |Q          |M             |uT         |R/T           |Q               |
-|- Few Unique   |Q          |M             |R          |R             |Q               |
+|               |(Un)stable (small)|Stable (small)|(Un)stable (large)|Stable (large)|In-place (large)|
+|---------------|:----------------:|:------------:|:----------------:|:------------:|:--------------:|
+|**Strings**    |                  |              |                  |              |                |
+|- Random       |M                 |M             |M                 |M             |Q               |
+|- Structured   |M                 |M             |T                 |T             |Q               |
+|- Few Unique   |Q                 |M             |Q                 |M             |Q               |
+|               |                  |              |                  |              |                |
+|**Float64**    |                  |              |                  |              |                |
+|- Random       |Q                 |M             |R                 |R             |Q               |
+|- Structured   |M                 |M             |T                 |T             |Q               |
+|- Few Unique   |Q                 |M             |Q                 |R             |Q               |
+|               |                  |              |                  |              |                |
+|**Int64**      |                  |              |                  |              |                |
+|- Random       |Q                 |M             |R                 |R             |Q               |
+|- Structured   |Q                 |M             |uT                |R/T           |Q               |
+|- Few Unique   |Q                 |M             |R                 |R             |Q               |
 
 Key:
 
