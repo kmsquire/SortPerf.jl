@@ -43,8 +43,8 @@ Suggestions based on basic tests
 
 Here is a table and some notes on the Julia implementations of the
 various algorithms.  The table indicates the recommended sort
-algorithm for the given size (`small < ~2^12 (=8,192) items < large`)
-and type (string, floating point, or integer) of data.
+algorithm for the given size (`small < ~10,000 items < large`)
+and type (`String`, `FloatingPoint`, or `Integer`) of data.
 
 - *Random* means that the data is permuted randomly.
 - *Structured* here means that the data contains partially sorted runs
