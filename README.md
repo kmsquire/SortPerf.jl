@@ -49,55 +49,55 @@ partially sorted runs (such as when appending random data to an
 already sorted array).  *Few unique* indicates that the data only
 contains a few unique values.
 
-|               |Any <2^12|Stable <2^12|Any >2^12|Stable >2^12|In-place >2^12|
-|---------------|:-------:|:----------:|:-------:|:----------:|:------------:|
-|**Strings**    |         |            |         |            |              |
-|- Random       |M        |M           |M        |M           |Q             |
-|- Structured   |M        |M           |T        |T           |Q             |
-|- Few Unique   |Q        |M           |Q        |M           |Q             |
-|               |         |            |         |            |              |
-|**Float64**    |         |            |         |            |              |
-|- Random       |Q        |M           |R        |R           |Q             |
-|- Structured   |M        |M           |T        |T           |Q             |
-|- Few Unique   |Q        |M           |Q        |R           |Q             |
-|               |         |            |         |            |              |
-|**Int64**      |         |            |         |            |              |
-|- Random       |Q        |M           |R        |R           |Q             |
-|- Structured   |Q        |M           |uT       |R/T         |Q             |
-|- Few Unique   |Q        |M           |R        |R           |Q             |
+|               |Any (small)|Stable (small)|Any (large)|Stable (large)|In-place (large)|
+|---------------|:---------:|:------------:|:---------:|:------------:|:--------------:|
+|**Strings**    |           |              |           |              |                |
+|- Random       |M          |M             |M          |M             |Q               |
+|- Structured   |M          |M             |T          |T             |Q               |
+|- Few Unique   |Q          |M             |Q          |M             |Q               |
+|               |           |              |           |              |                |
+|**Float64**    |           |              |           |              |                |
+|- Random       |Q          |M             |R          |R             |Q               |
+|- Structured   |M          |M             |T          |T             |Q               |
+|- Few Unique   |Q          |M             |Q          |R             |Q               |
+|               |           |              |           |              |                |
+|**Int64**      |           |              |           |              |                |
+|- Random       |Q          |M             |R          |R             |Q               |
+|- Structured   |Q          |M             |uT         |R/T           |Q               |
+|- Few Unique   |Q          |M             |R          |R             |Q               |
 
 Key:
 
-|Symbol|Algorithm      |
-|------|---------------|
-|H     |HeapSort       |
-|I     |InsertionSort  |
-|M     |MergeSort      |
-|Q     |QuickSort      |
-|T     |TimSort        |
-|uT    |TimSortUnstable|
-|R     |RadixSort      |
+|Symbol|Algorithm        |
+|------|-----------------|
+|H     |`HeapSort`       |
+|I     |`InsertionSort`  |
+|M     |`MergeSort`      |
+|Q     |`QuickSort`      |
+|T     |`TimSort`        |
+|uT    |`TimSortUnstable`|
+|R     |`RadixSort`      |
 
 
 Current Recommendations
 -----------------------
 
 * Except for pathological cases, small arrays are sorted best with
-  QuickSort (unstable) or MergeSort (stable)
+  `QuickSort` (unstable) or `MergeSort`` (stable)
 
 * When sorting large arrays with sections of already-sorted data, use
-  TimSort.  The only structured case it does not handle well is
+  `TimSort`.  The only structured case it does not handle well is
   reverse-sorted data with large numbers of repeat elements.  An
-  unstable version of TimSort (to be contributed to Julia soon) will
+  unstable version of `TimSort` (to be contributed to Julia soon) will
   handle this case
 
-* For numerical data (Ints or Floats) without structure, RadixSort is
+* For numerical data (Ints or Floats) without structure, `RadixSort` is
   the best choice, except for 1) 128-bit values, or 2) 64-bit integers
   which span the full range of values.
 
-* When memory is tight, QuickSort is the best in-place algorithm.  If
-  there is concern about pathological cases, use HeapSort.  All
-  stable algorithms use additional memory, but TimSort is (probably)
+* When memory is tight, `QuickSort` is the best in-place algorithm.  If
+  there is concern about pathological cases, use `HeapSort`.  All
+  stable algorithms use additional memory, but `TimSort` is (probably)
   the most frugal.
 
 * **Composite types may behave differently.**  If sorting is
