@@ -7,8 +7,11 @@ module SortPerf
 
 export sortperf, sortperf_df, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median
 
-import Base.Sort.Algorithm, Base.Order.Ordering
+import Base.Sort: Algorithm, Forward, ReverseOrdering, ord
+import Base.Order.Ordering
 
+
+using SortingAlgorithms
 using DataFrames
 using Winston
 using Color
@@ -25,7 +28,7 @@ randfns = (Type=>Function)[Int => randint,
                            String => randstr]
 
 std_types = [Int, Float64, String]
-sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort, TimSortUnstable]
+sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort] #, TimSortUnstable]
 dc = distinguishable_colors(12)
 colors = Dict([string(alg)[1:end-5] for alg in sort_algs], Uint32[convert(RGB24, r) for r in dc])
 colors["HeapSort"] = convert(RGB24, dc[8])
@@ -46,7 +49,7 @@ sort_descr = [ '*' => "random",
 
 
 # Test algorithm performance on a data vector
-function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward; replicates=3, skip_median_killer=false)
+function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Forward; replicates=3, skip_median_killer=false)
     srand(1)
     times = Dict[]   # Array of Dicts!
     n = length(origdata)
@@ -85,7 +88,7 @@ function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward
 
         ## Reverse sorted
         reverse!(data)
-        @assert issorted(data, Sort.ReverseOrdering(order))
+        @assert issorted(data, ReverseOrdering(order))
         gc()
         reptimes["\\sort"] = @elapsed sort!(data, alg, order)
         @assert issorted(data, order)
@@ -115,7 +118,7 @@ function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward
         idxs = Int[]
         for i = 1:4
             idx = rand(1:n)
-            while contains(idxs, idx)
+            while idx in idxs
                 idx = rand(1:n)
             end
             push!(idxs, idx)
@@ -151,7 +154,7 @@ function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Sort.Forward
 end
 
 # run sortperf over a range of data lengths
-function sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Ordering=Sort.Forward; named...)
+function sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Ordering=Forward; named...)
     lg2range = filter(x -> 2^x <= length(data), [log2range])
     times = Dict[]
     for logsize in lg2range
@@ -267,9 +270,9 @@ end
 
 # Test standard sort functions
 function std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
-                        lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Sort.Forward, 
+                        lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward, 
                         save::Bool=false, prefix="sortperf")
-    sort_times = sortperf_df(sort_algs, types, range, Sort.ord(lt,by,rev,order); replicates=replicates)
+    sort_times = sortperf_df(sort_algs, types, range, ord(lt,by,rev,order); replicates=replicates)
 
     if save
         pdffile = prefix*".pdf"
