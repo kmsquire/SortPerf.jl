@@ -5,7 +5,7 @@
 
 module SortPerf
 
-export sortperf, sortperf_df, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median
+export sortperf, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median
 
 import Base.Sort: Algorithm, Forward, ReverseOrdering, ord
 import Base.Order.Ordering
@@ -49,7 +49,7 @@ sort_descr = [ '*' => "random",
 
 
 # Test algorithm performance on a data vector
-function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Forward; replicates=3, skip_median_killer=false)
+function _sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Forward; replicates=3, skip_median_killer=false)
     srand(1)
     times = Dict[]   # Array of Dicts!
     n = length(origdata)
@@ -154,7 +154,7 @@ function sortperf(alg::Algorithm, origdata::Vector, order::Ordering=Forward; rep
 end
 
 # run sortperf over a range of data lengths
-function sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Ordering=Forward; named...)
+function _sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Ordering=Forward; named...)
     lg2range = filter(x -> 2^x <= length(data), [log2range])
     times = Dict[]
     for logsize in lg2range
@@ -165,45 +165,45 @@ function sortperf(alg::Algorithm, data::Vector, log2range::Ranges, order::Orderi
             continue
         end
 
-        append!(times, sortperf(alg, data[1:size], order; named...))
+        append!(times, _sortperf(alg, data[1:size], order; named...))
     end
 
     times
 end
 
 # Generate a random array and run sortperf
-function sortperf(alg::Algorithm, T::Type, size::Int, args...; named...)
+function _sortperf(alg::Algorithm, T::Type, size::Int, args...; named...)
     println("Testing $T...")
-    sortperf(alg, randfns[T](size), args...; named...)
+    _sortperf(alg, randfns[T](size), args...; named...)
 end
 
 # Generate a random array and run sortperf over different ranges of that array
-function sortperf(alg::Algorithm, T::Type, log2range::Ranges, args...; named...)
+function _sortperf(alg::Algorithm, T::Type, log2range::Ranges, args...; named...)
     println("Testing $T...")
-    sortperf(alg, randfns[T](2^last(log2range)), log2range, args...; named...)
+    _sortperf(alg, randfns[T](2^last(log2range)), log2range, args...; named...)
 end
 
 # Run sortperf for a number of types
-function sortperf(alg::Algorithm, types::Vector{DataType}, args...; named...)
+function _sortperf(alg::Algorithm, types::Vector{DataType}, args...; named...)
     times = Dict[]
     for T in types
-        append!(times, sortperf(alg, T, args...; named...))
+        append!(times, _sortperf(alg, T, args...; named...))
     end
     times
 end
 
 # Run sortperf on a number of algorithms
-function sortperf(algs::Vector{Algorithm}, args...; named...)
+function _sortperf(algs::Vector{Algorithm}, args...; named...)
     times = Dict[]
     for alg in algs
         println("\n$alg\n")
-        append!(times, sortperf(alg, args...; named...))
+        append!(times, _sortperf(alg, args...; named...))
     end
     times
 end
 
 # Returns a DataFrame version of sortperf output
-sortperf_df(args...; named...) = DataFrame(sortperf(args...; named...), labels)
+sortperf(args...; named...) = DataFrame(_sortperf(args...; named...), labels)
 
 # Get median sort timings
 sort_median(df::DataFrame) = groupby(df, ["log_size", "size", "sort_alg", "test_type"]) |> :median
