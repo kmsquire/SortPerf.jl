@@ -272,7 +272,7 @@ end
 function std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
                         lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward, 
                         save::Bool=false, prefix="sortperf")
-    sort_times = sortperf_df(sort_algs, types, range, ord(lt,by,rev,order); replicates=replicates)
+    sort_times = sortperf(sort_algs, types, range, ord(lt,by,rev,order); replicates=replicates)
 
     if save
         pdffile = prefix*".pdf"
