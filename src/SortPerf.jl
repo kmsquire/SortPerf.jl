@@ -23,6 +23,7 @@ randint(n::Int) = rand(1:n,n)
 randfns = (Type=>Function)[Int => randint, 
                            Int32 => x->int32(randint(x)),
                            Int64 => x->int64(randint(x)), 
+                           Int128 => x->int128(randint(x)),
                            Float32 => x->float32(rand(x)), 
                            Float64 => rand, 
                            String => randstr]
