@@ -1,7 +1,10 @@
 SortPerf.jl: Module to test the performance of sorting algorithms
 --------------------------------------------------------------
 
-The purpose of this module is to test the performance of the different sort (and related) algorithms in Julia.  Run with:
+The purpose of this module is to test the performance of the different sort (and related) algorithms in Julia.  See https://github.com/kmsquire/SortPerf.jl/raw/master/sortperf.pdf for an example output from Version 0.3.0-prerelease+125.
+
+
+Run with:
 
     std_sort_tests(;sort_algs=SortPerf.sort_algs,   # [InsertionSort, HeapSort, MergeSort, 
                                                     #     QuickSort, RadixSort, TimSort]
