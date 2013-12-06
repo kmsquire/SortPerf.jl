@@ -24,9 +24,17 @@ Ordering parameters accepted by sort!() (i.e., `rev=true` or `false`, `by=`, `lt
 
 **SortPerf.std_sort_tests()** will run tests all standard sorting algorithms on random arrays of `Ints`, `Float64s`, and `Strings`.  The parameters of the run can be modified:
 
-    std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
-                   lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward, 
-                   save::Bool=false, prefix="sortperf")
+    std_sort_tests(;sort_algs=SortPerf.sort_algs,   # [InsertionSort, HeapSort, MergeSort, 
+                                                    #     QuickSort, RadixSort, TimSort]
+                    types=SortPerf.std_types,       # [Int32, Int64, Int128, Float32, Float64, String]
+                    range=6:20,                     # 2^6 through 2^20, by powers of 2
+                    replicates=3,                   #
+                    lt::Function=isless,            # sort(...) option
+                    by::Function=identity,          # sort(...) option
+                    rev::Bool=false,                # sort(...) option
+                    order::Ordering=Forward,        # sort(...) option
+                    save::Bool=false,               # create and save timing tsv and pdf plot
+                    prefix="sortperf")              # prefix for saved files
 
 where
 
