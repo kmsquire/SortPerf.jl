@@ -1,16 +1,25 @@
 SortPerf.jl: Module to test the performance of sorting algorithms
 --------------------------------------------------------------
 
-The purpose of this module is to test the performance of the different sort (and related) algorithms in Julia.  
+The purpose of this module is to test the performance of the different sort (and related) algorithms in Julia.  Run with:
 
+    std_sort_tests(;sort_algs=SortPerf.sort_algs,   # [InsertionSort, HeapSort, MergeSort, 
+                                                    #     QuickSort, RadixSort, TimSort]
+                    types=SortPerf.std_types,       # [Int32, Int64, Int128, Float32, Float64, String]
+                    range=6:20,                     # Array size 2^6 through 2^20, by powers of 2
+                    replicates=3,                   #
+                    lt::Function=isless,            # \
+                    by::Function=identity,          #  | sort(...) options
+                    rev::Bool=false,                #  |
+                    order::Ordering=Forward,        # /
+                    save::Bool=false,               # create and save timing tsv and pdf plot
+                    prefix="sortperf")              # prefix for saved files
 
-**`SortPerf.sortperf()`** is a set of identically named functions which allow the testing of different sorting algorithms on different data with various sizes and parameters.  Run with:
+You can also test individual algorithms with 
 
-    sortperf(Algorithm(s), data)
+    sortperf(Algorithm(s), data, [size,] [replicates=xxx])
 
-to test an Algorithm or Algorithms (QuickSort, InsertionSort, MergeSort, or TimSort)on a particular data set.  
-
-You can also specify one or more `DataTypes` (`Int`, `Float32`, `Float64`, or `String` only) and one or more sizes (multiple sizes are specified by their log2 values):
+Some examples:
 
     sortperf(QuickSort, Int, 10_000)               # Test QuickSort on 10,000 random ints
     sortperf(MergeSort, [Float32, String], 6:2:10) # Test MergeSort on 2^6, 2^8, and 2^10 float 32s and strings
@@ -19,32 +28,7 @@ You can also specify one or more `DataTypes` (`Int`, `Float32`, `Float64`, or `S
              6:20;                                 # ranging from 2^6 elements to 2^20 elements, by 
              replicates=5)                         # powers of 2, and run each test 5 times
 
-Ordering parameters accepted by sort!() (i.e., `rev=true` or `false`, `by=`, `lt=`, and `order=`) will be passed through.
-
-
-**SortPerf.std_sort_tests()** will run tests all standard sorting algorithms on random arrays of `Ints`, `Float64s`, and `Strings`.  The parameters of the run can be modified:
-
-    std_sort_tests(;sort_algs=SortPerf.sort_algs,   # [InsertionSort, HeapSort, MergeSort, 
-                                                    #     QuickSort, RadixSort, TimSort]
-                    types=SortPerf.std_types,       # [Int32, Int64, Int128, Float32, Float64, String]
-                    range=6:20,                     # 2^6 through 2^20, by powers of 2
-                    replicates=3,                   #
-                    lt::Function=isless,            # sort(...) option
-                    by::Function=identity,          # sort(...) option
-                    rev::Bool=false,                # sort(...) option
-                    order::Ordering=Forward,        # sort(...) option
-                    save::Bool=false,               # create and save timing tsv and pdf plot
-                    prefix="sortperf")              # prefix for saved files
-
-where
-
-* `sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort]` is an array of sorting algorithms (default is all algs)
-* `types = [Int32, Int64, Int128, Float32, Float64, String]` is an array of types to test (default is `[Int64, Float64, String]`)
-* `range = 6:20` are the array sizes to test, in powers of 2 (i.e., 6 => 2^6=64 items)
-* `replicates = 3` are the number of replicates for each test
-* `lt`, `by`, `rev`, and `order` are identical to their sort values
-* `save = False` will create and save a pdf file of timing plots for each test, as well as a tsv file of the timing values
-* `prefix = "sortperf"` is the prefix for the saved files
+Ordering parameters accepted by sort!(...) will be passed through.
 
 
 Sorting Tests
