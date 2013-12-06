@@ -22,7 +22,25 @@ You can also specify one or more `DataTypes` (`Int`, `Float32`, `Float64`, or `S
 Ordering parameters accepted by sort!() (i.e., `rev=true` or `false`, `by=`, `lt=`, and `order=`) will be passed through.
 
 
-**SortPerf.std_sort_tests()** will run tests all standard sorting algorithms on random arrays of `Ints`, `Float64s`, and `Strings`.
+**SortPerf.std_sort_tests()** will run tests all standard sorting algorithms on random arrays of `Ints`, `Float64s`, and `Strings`.  The parameters of the run can be modified:
+
+    std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
+                   lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward, 
+                   save::Bool=false, prefix="sortperf")
+
+where
+
+* `sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort]` is an array of sorting algorithms (default is all algs)
+* `types = [Int32, Int64, Int128, Float32, Float64, String]` is an array of types to test (default is `[Int64, Float64, String]`)
+* `range = 6:20` are the array sizes to test, in powers of 2 (i.e., 6 => 2^6=64 items)
+* `replicates = 3` are the number of replicates for each test
+* `lt`, `by`, `rev`, and `order` are identical to their sort values
+* `save = False` will create and save a pdf file of timing plots for each test, as well as a tsv file of the timing values
+* `prefix = "sortperf"` is the prefix for the saved files
+
+
+Sorting Tests
+-------------
 
 The actual tests run include sorting arrays with the following characteristics:
 
@@ -36,6 +54,7 @@ The actual tests run include sorting arrays with the following characteristics:
 * quicksort median killer: first half descending, second half ascending
 
 The tests were inspired by similar tests used by sortperf in Python.  See http://svn.python.org/projects/python/trunk/Objects/listsort.txt for more details.
+
 
 
 Suggestions based on basic tests
