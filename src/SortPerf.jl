@@ -5,7 +5,7 @@
 
 module SortPerf
 
-export sortperf, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median
+export sortperf, sort_plots, view_sort_plots, save_sort_plots, std_sort_tests, sort_median, sort_scale
 
 import Base.Sort: Algorithm, Forward, ReverseOrdering, ord
 import Base.Order.Ordering
@@ -30,9 +30,6 @@ randfns = (Type=>Function)[Int => randint,
 
 std_types = [Int, Float64, String]
 sort_algs = [InsertionSort, HeapSort, MergeSort, QuickSort, RadixSort, TimSort] #, TimSortUnstable]
-dc = distinguishable_colors(12)
-colors = Dict([string(alg)[1:end-5] for alg in sort_algs], Uint32[convert(RGB24, r) for r in dc])
-colors["HeapSort"] = convert(RGB24, dc[8])
 
 # DataFrame labels
 labels = ["test_type", "sort_alg", "log_size", "size", "*sort", 
@@ -209,16 +206,26 @@ sortperf(args...; named...) = DataFrame(_sortperf(args...; named...), labels)
 # Get median sort timings
 sort_median(df::DataFrame) = groupby(df, ["log_size", "size", "sort_alg", "test_type"]) |> :median
 
+sort_scale(df::DataFrame, base_sort) = by(df, ["log_size", "size", "test_type"], 
+                                          x->(row = find(x["sort_alg"] .== base_sort);
+                                              ht = size(x,1); 
+                                              hcat(x[:,3:3],x[:,5:end]./vcat(rep(x[row,5:end],ht)...))))
+
 # Create sort plots
 function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
-                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
+                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"],
+                    base_sort)
     plots = PlotContainer[]
-    #colors = repmat(["black", "blue", "green", "red", "cyan", "magenta"], 3, 1)
+    sort_algs = unique(df["sort_alg"])
+    dc = distinguishable_colors(12)[[1,3,4,5,6,7,8,9,10,11,12]]
+    colors = Dict([string(alg) for alg in sort_algs], Uint32[convert(RGB24, r) for r in dc])
     linestyles = repmat(["solid", "dotted", "dotdashed"]', 6, 1)[:]
     for test_type_df in groupby(df, "test_type")
         test = test_type_df[1, "test_type"]
 
         for col in cols
+            if length(DataFrames.removeNA(df[col])) == 0; continue; end
+
             seq = split(col, '_')[1]
             seq_name = sort_descr[seq[1]]
 
@@ -227,9 +234,10 @@ function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median",
             println("Plotting $ts")
             plt = FramedPlot()
             setattr(plt, "xlabel", "log n")
-            setattr(plt, "ylabel", "time (sec)")
+            setattr(plt, "ylabel", "time (relative to $base_sort")
             setattr(plt, "title", "Sort Comparison ($test, $seq_name)")
-            setattr(plt.y1, "log", true )
+            #setattr(plt.y1, "log", true )
+            setattr(plt, "yrange", (0, 1.35))
             setattr(plt, "width", 768)
 
             curves = Any[]
@@ -247,6 +255,7 @@ function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median",
                     add(plt, cv)
                 end
             end
+
             add(plt, Legend(.1, .9, curves))
 
             push!(plots, plt)
@@ -258,9 +267,15 @@ end
 
 # Save plots
 save_sort_plots(plots, pdffile="sortperf.pdf") = file(plots, pdffile)
-save_sort_plots(df::DataFrame, pdffile="sortperf.pdf") = 
-    save_sort_plots(sort_plots(sort_median(df), ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
-                                                 "+sort_median", "~sort_median", "=sort_median", "!sort_median"]),
+#save_sort_plots(df::DataFrame, pdffile="sortperf.pdf") = 
+#    save_sort_plots(sort_plots(sort_median(df), ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
+#                                                 "+sort_median", "~sort_median", "=sort_median", "!sort_median"]),
+#                               pdffile)
+save_sort_plots(df::DataFrame, base_sort, pdffile="sortperf.pdf") = 
+    save_sort_plots(sort_plots(sort_scale(sort_median(df), base_sort), 
+                               ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
+                               "+sort_median", "~sort_median", "=sort_median", "!sort_median"],
+                               base_sort),
                                pdffile)
 
 function view_sort_plots(plots)
@@ -272,13 +287,14 @@ end
 # Test standard sort functions
 function std_sort_tests(;sort_algs=SortPerf.sort_algs, types=SortPerf.std_types, range=6:20, replicates=3,
                         lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward, 
-                        save::Bool=false, prefix="sortperf")
-    sort_times = sortperf(sort_algs, types, range, ord(lt,by,rev,order); replicates=replicates)
+                        save::Bool=false, prefix="sortperf", skip_median_killer=false, base_sort="QuickSort")
+    sort_times = sortperf(sort_algs, types, range, ord(lt,by,rev,order); 
+                          replicates=replicates, skip_median_killer=skip_median_killer)
 
     if save
         pdffile = prefix*".pdf"
         tsvfile = prefix*".tsv"
-        save_sort_plots(sort_times, pdffile)
+        save_sort_plots(sort_times, base_sort, pdffile)
         writetable(tsvfile, sort_times)
     end
 
