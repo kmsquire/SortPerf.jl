@@ -212,9 +212,8 @@ sort_scale(df::DataFrame, base_sort) = by(df, ["log_size", "size", "test_type"],
                                               hcat(x[:,3:3],x[:,5:end]./vcat(rep(x[row,5:end],ht)...))))
 
 # Create sort plots
-function sort_plots(df, cols = ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
-                                "+sort_median", "~sort_median", "=sort_median", "!sort_median"],
-                    base_sort)
+function sort_plots(df, base_sort, cols = ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
+                                           "+sort_median", "~sort_median", "=sort_median", "!sort_median"])
     plots = PlotContainer[]
     sort_algs = unique(df["sort_alg"])
     dc = distinguishable_colors(12)[[1,3,4,5,6,7,8,9,10,11,12]]
@@ -272,11 +271,7 @@ save_sort_plots(plots, pdffile="sortperf.pdf") = file(plots, pdffile)
 #                                                 "+sort_median", "~sort_median", "=sort_median", "!sort_median"]),
 #                               pdffile)
 save_sort_plots(df::DataFrame, base_sort, pdffile="sortperf.pdf") = 
-    save_sort_plots(sort_plots(sort_scale(sort_median(df), base_sort), 
-                               ["*sort_median", "\\sort_median", "/sort_median", "3sort_median",
-                               "+sort_median", "~sort_median", "=sort_median", "!sort_median"],
-                               base_sort),
-                               pdffile)
+    save_sort_plots(sort_plots(sort_scale(sort_median(df), base_sort), base_sort), pdffile)
 
 function view_sort_plots(plots)
     for p in plots
